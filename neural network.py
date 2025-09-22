@@ -1,13 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tkinter as tk
+import os
 from PIL import Image, ImageTk
 
 GRID_DIM = 28
 PIXEL_SIZE = 20
 WINDOW_SIZE = GRID_DIM * PIXEL_SIZE
 
-BRUSH_RADIUS = 2  
+BRUSH_RADIUS = 2 
 BRUSH_INTENSITY = 0.5 
 
 class GrayscaleApp:
@@ -41,7 +42,7 @@ class GrayscaleApp:
         y, x = np.ogrid[-BRUSH_RADIUS:BRUSH_RADIUS + 1, -BRUSH_RADIUS:BRUSH_RADIUS + 1]
         mask = x**2 + y**2 <= BRUSH_RADIUS**2
         distance_sq = x**2 + y**2
-        sigma_sq = (BRUSH_RADIUS / 2)**2 # Adjust for desired softness
+        sigma_sq = (BRUSH_RADIUS / 2)**2 
         gaussian = BRUSH_INTENSITY * np.exp(-distance_sq / (2 * sigma_sq)) * mask
 
         min_row = max(0, row - BRUSH_RADIUS)
@@ -72,11 +73,9 @@ class GrayscaleApp:
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo_image)
 
     def get_activity_grid(self):
-
         return self.activity_grid
 
     def clear_grid(self):
-        """Resets the grid and clears the canvas."""
         self.activity_grid.fill(0.0)
         self.update_canvas()
 
@@ -86,10 +85,10 @@ if __name__ == "__main__":
     main_window.mainloop()
     initial_activities=app.get_activity_grid()
 
-
 def sigmoid(x):
     return 1/(1+np.exp(-x))
 
+w=[]
 neurallayers=[]
 numoflays=4
 
@@ -102,13 +101,14 @@ class neuron:
         self.currentn=currentn
         self.activity=1
         if prevn!=0:
-            self.weights=np.random.uniform(0.0,1.0)
+            self.weights=np.array([1 for i in range(self.prevn)])
             self.bias=1
         else:
             self.activity=initial_activities[currentn//28][currentn%28]
             self.weights=None
             self.bias=None
-
+    def updateweightsbiases(cls):
+        w.append(cls.weights)
     def calcactivity(cls):
         
         if cls.prevlayer!=None:
@@ -125,18 +125,26 @@ class neurallayer:
         for i in range(countn):
             self.neurons.append(neuron(self.prevlayer,self.nextlayer,self.prevn,self.countn,i)) 
             neuron.calcactivity(self.neurons[i])
-        
+            if prevlayer!=None:
+                neuron.updateweightsbiases(self.neurons[i])
+                
+       
 neurallayers.append(neurallayer(None,1,0,784))
 for i in range(1,numoflays-1):
     neurallayers.append(neurallayer(i-1,i+1,neurallayers[i-1].countn,16))
 neurallayers.append(neurallayer(numoflays-2,None,neurallayers[numoflays-2].countn,10))
 
-for i in neurallayers:
-    for j in i.neurons:
-        print(j.activity)
 
+file='weights_biases.npz'
+folder='data'
+os.makedirs(folder, exist_ok=True) 
 
-
+path=os.path.join(folder,file)
+np.savez(path,*w)
+data=np.load(path)
+for i in data:
+    print(data[i])
+print(path)
 
 
 
